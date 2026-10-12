@@ -1,0 +1,360 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f7f4">
+  <title>Такси — поездка начинается здесь</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" id="brand-home" aria-label="На главную">
+      <span class="brand-mark">t.</span>
+      <span>такси<span class="brand-dot">.</span></span>
+    </a>
+
+    <nav class="top-nav" aria-label="Главная навигация">
+      <button class="nav-link active" id="nav-order" type="button">Заказать</button>
+      <button class="nav-link" id="nav-history" type="button">Мои поездки</button>
+    </nav>
+
+    <div class="account-area">
+      <span id="account-label" class="account-label">Гость</span>
+      <button id="auth-open" class="button button-dark button-small" type="button">
+        Войти
+      </button>
+      <button id="logout-button" class="button button-quiet button-small hidden" type="button">
+        Выйти
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section id="auth-view" class="auth-layout">
+      <div class="auth-intro">
+        <div class="eyebrow"><span class="status-dot"></span> ГОРОДСКИЕ ПОЕЗДКИ БЕЗ ЛИШНИХ ЗАБОТ</div>
+        <h1>Город ближе,<br>чем кажется<span class="brand-dot">.</span></h1>
+        <p class="lead">
+          Укажи маршрут, выбери комфорт и отправляйся по своим делам.
+        </p>
+        <div class="intro-points">
+          <div><span class="point-icon">↗</span><span>Понятная стоимость до заказа</span></div>
+          <div><span class="point-icon">◷</span><span>Статус поездки в реальном времени*</span></div>
+          <div><span class="point-icon">✳</span><span>Тариф под твои планы</span></div>
+        </div>
+        <p class="fine-print">* Статусы демонстрируются в тестовом режиме.</p>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-card-heading">
+          <div class="eyebrow">ТВОЙ ЛИЧНЫЙ КАБИНЕТ</div>
+          <h2 id="auth-title">С возвращением</h2>
+          <p id="auth-subtitle">Войди, чтобы заказать поездку.</p>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="Вход или регистрация">
+          <button id="tab-login" class="auth-tab active" type="button" role="tab" aria-selected="true">
+            Вход
+          </button>
+          <button id="tab-register" class="auth-tab" type="button" role="tab" aria-selected="false">
+            Регистрация
+          </button>
+        </div>
+
+        <form id="auth-form" novalidate>
+          <div id="register-fields" class="hidden">
+            <label for="register-name">Имя</label>
+            <input id="register-name" name="name" autocomplete="name"
+                   placeholder="Как к тебе обращаться" maxlength="60">
+
+            <label for="register-phone">Телефон</label>
+            <input id="register-phone" name="phone" type="tel"
+                   autocomplete="tel" placeholder="+7 900 000-00-00"
+                   inputmode="tel" maxlength="20">
+          </div>
+
+          <label for="auth-email">Электронная почта</label>
+          <input id="auth-email" name="email" type="email" required
+                 autocomplete="email" placeholder="you@example.com" maxlength="254">
+
+          <label for="auth-password">Пароль</label>
+          <input id="auth-password" name="password" type="password" required
+                 autocomplete="current-password" placeholder="Не менее 6 символов" minlength="6">
+
+          <div id="auth-error" class="form-message" role="alert" aria-live="polite"></div>
+
+          <button id="auth-submit" class="button button-dark button-full" type="submit">
+            Войти в аккаунт <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <p class="auth-note">
+          Демо-режим: данные аккаунта сохраняются только в этом браузере.
+        </p>
+      </div>
+    </section>
+
+    <section id="app-view" class="app-layout hidden">
+      <div class="main-column">
+        <section class="welcome-row">
+          <div>
+            <div class="eyebrow">ТВОЙ МАРШРУТ — ТВОИ ПРАВИЛА</div>
+            <h1>Куда отправимся<span class="brand-dot">?</span></h1>
+            <p class="lead">Несколько деталей — и можно ехать.</p>
+          </div>
+        </section>
+
+        <section id="order-panel" class="panel">
+          <div class="panel-heading">
+            <div>
+              <span class="step-number">01</span>
+              <h2>Маршрут</h2>
+            </div>
+            <span class="subtle-label">ОТКУДА И КУДА</span>
+          </div>
+
+          <form id="order-form" novalidate>
+            <div class="route-fields">
+              <div class="route-rail" aria-hidden="true">
+                <span class="route-origin"></span>
+                <span class="route-line"></span>
+                <span class="route-destination"></span>
+              </div>
+              <div class="route-inputs">
+                <label for="pickup-address">Точка отправления</label>
+                <input id="pickup-address" name="pickup" required maxlength="120"
+                       placeholder="Например, Невский проспект, 10">
+
+                <label for="destination-address">Точка назначения</label>
+                <input id="destination-address" name="destination" required maxlength="120"
+                       placeholder="Например, Литейный проспект, 20">
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="distance-km">Расстояние, км</label>
+                <input id="distance-km" name="distance" type="number"
+                       min="1" max="100" step="1" value="8" required>
+              </div>
+              <div class="field-group">
+                <label for="payment-method">Способ оплаты</label>
+                <select id="payment-method" name="payment">
+                  <option value="card">Банковская карта</option>
+                  <option value="cash">Наличные</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="panel-heading tariff-heading">
+              <div>
+                <span class="step-number">02</span>
+                <h2>Выбери свой тариф</h2>
+              </div>
+            </div>
+
+            <div id="tariff-list" class="tariff-list">
+              <label class="tariff-card selected" data-tariff-card="basic">
+                <input type="radio" name="tariff" value="basic" checked>
+                <span class="car-illustration car-basic" aria-hidden="true">🚕</span>
+                <span class="tariff-info">
+                  <strong>Basic</strong>
+                  <span>На каждый день</span>
+                  <small>1–4 пассажира</small>
+                </span>
+                <span class="tariff-price" id="price-basic">— ₽</span>
+              </label>
+
+              <label class="tariff-card" data-tariff-card="comfort">
+                <input type="radio" name="tariff" value="comfort">
+                <span class="car-illustration car-comfort" aria-hidden="true">🚖</span>
+                <span class="tariff-info">
+                  <strong>Comfort</strong>
+                  <span>Больше пространства</span>
+                  <small>1–4 пассажира</small>
+                </span>
+                <span class="tariff-price" id="price-comfort">— ₽</span>
+              </label>
+
+              <label class="tariff-card" data-tariff-card="comfort-plus">
+                <input type="radio" name="tariff" value="comfort-plus">
+                <span class="car-illustration car-plus" aria-hidden="true">🚘</span>
+                <span class="tariff-info">
+                  <strong>Comfort+</strong>
+                  <span>Поездка с особым комфортом</span>
+                  <small>1–4 пассажира</small>
+                </span>
+                <span class="tariff-price" id="price-comfort-plus">— ₽</span>
+              </label>
+            </div>
+
+            <div id="order-error" class="form-message" role="alert" aria-live="polite"></div>
+
+            <div class="order-summary">
+              <div>
+                <span class="summary-caption">Предварительная стоимость</span>
+                <strong id="estimated-price" class="estimated-price">— ₽</strong>
+                <span class="summary-note">Без реального списания средств</span>
+              </div>
+              <button id="create-order" class="button button-accent" type="submit">
+                Заказать такси <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section id="trip-panel" class="panel hidden">
+          <div class="panel-heading">
+            <div>
+              <span class="step-number">03</span>
+              <h2>Твоя поездка</h2>
+            </div>
+            <span id="order-status" class="status-pill" data-status="searching">Поиск водителя</span>
+          </div>
+
+          <div class="trip-route">
+            <div class="trip-point"><span class="route-origin"></span><div>
+              <small>ОТПРАВЛЕНИЕ</small><strong id="trip-pickup"></strong>
+            </div></div>
+            <div class="trip-point"><span class="route-destination"></span><div>
+              <small>НАЗНАЧЕНИЕ</small><strong id="trip-destination"></strong>
+            </div></div>
+          </div>
+
+          <div id="driver-card" class="driver-card hidden">
+            <div class="driver-avatar" aria-hidden="true">А</div>
+            <div class="driver-details">
+              <small>ТВОЙ ВОДИТЕЛЬ · ТЕСТОВЫЙ МОК</small>
+              <strong id="driver-name">Алексей Смирнов</strong>
+              <span id="driver-car">Седан · А123АА</span>
+            </div>
+            <div class="driver-rating">★ 4.9</div>
+          </div>
+
+          <div class="trip-progress" aria-label="Этапы поездки">
+            <div class="progress-step" data-step="searching"><span>1</span><small>Поиск</small></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="assigned"><span>2</span><small>Водитель</small></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="arrived"><span>3</span><small>На месте</small></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="in_progress"><span>4</span><small>В пути</small></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="completed"><span>5</span><small>Готово</small></div>
+          </div>
+
+          <div class="trip-bottom">
+            <div>
+              <span class="summary-caption">Стоимость поездки</span>
+              <strong id="trip-price" class="estimated-price">— ₽</strong>
+              <p id="trip-message" class="trip-message" aria-live="polite"></p>
+            </div>
+            <div class="trip-actions">
+              <button id="trip-next" class="button button-accent" type="button">
+                Следующий этап →
+              </button>
+              <button id="cancel-order" class="button button-danger" type="button">
+                Отменить заказ
+              </button>
+              <button id="new-order" class="button button-dark hidden" type="button">
+                Заказать ещё раз
+              </button>
+              <button id="leave-review" class="button button-dark hidden" type="button">
+                Оставить отзыв
+              </button>
+            </div>
+          </div>
+          <p class="fine-print">Следующий этап управляется системным мок-водителем. Реальный водитель не подключён.</p>
+        </section>
+
+        <section id="history-panel" class="panel hidden">
+          <div class="panel-heading">
+            <div><span class="step-number">04</span><h2>Мои поездки</h2></div>
+            <button id="back-to-order" class="button button-quiet button-small" type="button">
+              ← К заказу
+            </button>
+          </div>
+          <div id="history-list" class="history-list"></div>
+          <div id="history-empty" class="empty-state">
+            <span class="empty-icon">↗</span>
+            <strong>Здесь появятся твои поездки</strong>
+            <p>Закажи первое такси — и история сохранится в этом браузере.</p>
+            <button id="history-order" class="button button-dark" type="button">Заказать такси</button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="side-column">
+        <div class="map-card">
+          <div class="map-art" aria-hidden="true">
+            <div class="map-road road-one"></div>
+            <div class="map-road road-two"></div>
+            <div class="map-road road-three"></div>
+            <div class="map-block block-one"></div>
+            <div class="map-block block-two"></div>
+            <div class="map-block block-three"></div>
+            <div class="map-block block-four"></div>
+            <div class="map-route-line"></div>
+            <div class="map-pin pin-one">A</div>
+            <div class="map-pin pin-two">B</div>
+            <div class="map-car">🚕</div>
+          </div>
+          <div class="map-caption">
+            <span class="map-caption-icon">⌖</span>
+            <div><strong>Твой город</strong><p>Демонстрационная карта маршрута</p></div>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="side-card-icon">✳</div>
+          <h3>Понятно с самого начала</h3>
+          <p>Стоимость зависит от расстояния и выбранного тарифа. Цена фиксируется для заказа в демо-режиме.</p>
+        </div>
+
+        <div class="side-card side-card-dark">
+          <div class="eyebrow">ТВОЙ АККАУНТ</div>
+          <h3 id="profile-name">Добро пожаловать!</h3>
+          <p id="profile-email">Войди, чтобы управлять своими поездками.</p>
+          <div class="profile-divider"></div>
+          <div class="profile-stat"><span>Поездок в истории</span><strong id="profile-trips">0</strong></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="review-modal" class="modal-backdrop hidden" role="presentation">
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="review-title">
+      <button id="review-close" class="modal-close" type="button" aria-label="Закрыть">×</button>
+      <div class="eyebrow">ПОЕЗДКА ЗАВЕРШЕНА</div>
+      <h2 id="review-title">Как всё прошло?</h2>
+      <p class="lead">Твой отзыв поможет нам стать лучше.</p>
+      <form id="review-form">
+        <fieldset class="rating-field">
+          <legend>Оцени поездку</legend>
+          <div class="rating-options">
+            <label><input type="radio" name="rating" value="1"><span>★</span></label>
+            <label><input type="radio" name="rating" value="2"><span>★</span></label>
+            <label><input type="radio" name="rating" value="3"><span>★</span></label>
+            <label><input type="radio" name="rating" value="4"><span>★</span></label>
+            <label><input type="radio" name="rating" value="5" checked><span>★</span></label>
+          </div>
+        </fieldset>
+        <label for="review-comment">Комментарий (необязательно)</label>
+        <textarea id="review-comment" name="comment" maxlength="500"
+                  placeholder="Поделись впечатлениями..." rows="3"></textarea>
+        <div id="review-error" class="form-message" role="alert"></div>
+        <button class="button button-accent button-full" type="submit">Отправить отзыв</button>
+      </form>
+    </section>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <footer class="footer">
+    <span class="brand brand-footer"><span class="brand-mark">t.</span> такси<span class="brand-dot">.</span></span>
+    <span>Учебный проект · Все поездки и платежи демонстрационные</span>
+  </footer>
+</body>
+</html>
