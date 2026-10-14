@@ -42,6 +42,7 @@ const $ = (id) => document.getElementById(id);
 let authMode = "login";
 let currentUser = null;
 let activeOrder = null;
+let reviewOrder = null;
 let toastTimer = null;
 let searchTimer = null;
 
@@ -81,7 +82,7 @@ function saveOrders(orders) {
 function userOrders() {
   if (!currentUser) return [];
   return getOrders()
-    .filter((order) => order.userEmail === currentUser.email)
+    .filter((order) => order.userPhone === currentUser.phone)
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -155,6 +156,11 @@ function showAuth(mode = "login") {
   $("tab-register").setAttribute("aria-selected", String(mode === "register"));
 
   $("register-fields").classList.toggle("hidden", mode !== "register");
+  $("register-password-confirm-field").classList.toggle(
+    "hidden",
+    mode !== "register"
+  );
+  $("register-password-confirm").required = mode === "register";
   $("auth-password").autocomplete =
     mode === "login" ? "current-password" : "new-password";
   $("auth-submit").innerHTML =
@@ -179,7 +185,7 @@ function showApplication(user) {
   $("account-label").textContent = user.name;
 
   $("profile-name").textContent = "Привет, " + user.name + "!";
-  $("profile-email").textContent = user.email;
+  $("profile-email").textContent = user.phone;
   updateProfileStats();
 
   showOrderView();
@@ -195,19 +201,20 @@ function switchAuthMode(mode) {
   showAuth(mode);
 }
 
-function normalizeEmail(email) {
-  return email.trim().toLowerCase();
+function normalizePhone(phone) {
+  return phone.replace(/\D/g, "");
 }
 
 function handleAuthSubmit(event) {
   event.preventDefault();
   clearMessage("auth-error");
 
-  const email = normalizeEmail($("auth-email").value);
+  const phone = $("auth-phone").value.trim();
+  const normalizedPhone = normalizePhone(phone);
   const password = $("auth-password").value;
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showMessage("auth-error", "Введи корректный адрес электронной почты.");
+  if (normalizedPhone.length < 10 || normalizedPhone.length > 15) {
+    showMessage("auth-error", "Введи корректный номер телефона.");
     return;
   }
 
@@ -220,21 +227,22 @@ function handleAuthSubmit(event) {
 
   if (authMode === "register") {
     const name = $("register-name").value.trim();
-    const phone = $("register-phone").value.trim();
+    const passwordConfirm = $("register-password-confirm").value;
 
     if (name.length < 2) {
       showMessage("auth-error", "Имя должно содержать не менее 2 символов.");
       return;
     }
 
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 10 || digits.length > 15) {
-      showMessage("auth-error", "Введи корректный номер телефона.");
+    if (password !== passwordConfirm) {
+      showMessage("auth-error", "Пароли не совпадают.");
       return;
     }
 
-    if (users.some((user) => user.email === email)) {
-      showMessage("auth-error", "Этот адрес уже зарегистрирован. Войди в аккаунт.");
+    if (users.some(
+      (user) => normalizePhone(user.phone || "") === normalizedPhone
+    )) {
+      showMessage("auth-error", "Этот номер уже зарегистрирован. Войди в аккаунт.");
       return;
     }
 
@@ -242,27 +250,28 @@ function handleAuthSubmit(event) {
       id: "user-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
       name,
       phone,
-      email,
       password,
       createdAt: Date.now()
     };
 
     if (!writeStorage(STORAGE_KEYS.users, [...users, user])) return;
-    if (!writeStorage(STORAGE_KEYS.session, { email: user.email })) return;
+    if (!writeStorage(STORAGE_KEYS.session, { phone: user.phone })) return;
 
     showApplication(user);
     showToast("Регистрация прошла успешно!");
     return;
   }
 
-  const user = users.find((item) => item.email === email);
+  const user = users.find(
+    (item) => normalizePhone(item.phone || "") === normalizedPhone
+  );
 
   if (!user || user.password !== password) {
-    showMessage("auth-error", "Неверная почта или пароль.");
+    showMessage("auth-error", "Неверный номер телефона или пароль.");
     return;
   }
 
-  if (!writeStorage(STORAGE_KEYS.session, { email: user.email })) return;
+  if (!writeStorage(STORAGE_KEYS.session, { phone: user.phone })) return;
 
   showApplication(user);
   showToast("Ты успешно вошёл в аккаунт.");
@@ -288,19 +297,27 @@ function logout() {
 }
 
 function updatePriceDisplay() {
-  const distance = Number($("distance-km").value);
-  const validDistance =
-    $("distance-km").value.trim() !== "" &&
+  const pickup = $("pickup-address").value.trim();
+  const destination = $("destination-address").value.trim();
+  const rawDistance = $("distance-km").value.trim();
+  const distance = Number(rawDistance);
+
+  const hasPickup = pickup.length >= 3;
+  const hasDestination = destination.length >= 3;
+  const hasDistance =
+    rawDistance !== "" &&
     Number.isFinite(distance) &&
     distance >= 1 &&
     distance <= 100;
 
-  for (const [id, tariff] of Object.entries(TARIFFS)) {
-    const price = validDistance ? calculatePrice(distance, id) : null;
+  const canCalculate = hasPickup && hasDestination && hasDistance;
+
+  for (const [id] of Object.entries(TARIFFS)) {
+    const price = canCalculate ? calculatePrice(distance, id) : null;
     $("price-" + id).textContent = price === null ? "— ₽" : money(price);
   }
 
-  const total = validDistance
+  const total = canCalculate
     ? calculatePrice(distance, selectedTariff())
     : null;
 
@@ -389,7 +406,7 @@ function handleCreateOrder(event) {
 
   activeOrder = {
     id: "order-" + Date.now(),
-    userEmail: currentUser.email,
+    userPhone: currentUser.phone,
     pickup,
     destination,
     distance,
@@ -559,58 +576,89 @@ function renderTrip() {
 }
 
 function renderHistory() {
-  const list = $("history-list");
-  const orders = userOrders();
+    const list = $("history-list");
+    const orders = userOrders();
 
-  list.replaceChildren();
-  $("history-empty").classList.toggle("hidden", orders.length > 0);
+    list.replaceChildren();
+    $("history-empty").classList.toggle("hidden", orders.length > 0);
+    for (const order of orders) {
+        const item = document.createElement("article");
+        item.className = "history-item";
 
-  for (const order of orders) {
-    const item = document.createElement("article");
-    item.className = "history-item";
+        const details = document.createElement("div");
+        const title = document.createElement("h3");
+        title.textContent = order.tariffName + " · " +
+        new Date(order.createdAt).toLocaleString("ru-RU");
 
-    const details = document.createElement("div");
-    const title = document.createElement("h3");
-    title.textContent = order.tariffName + " · " +
-      new Date(order.createdAt).toLocaleString("ru-RU");
+        const route = document.createElement("p");
+        route.textContent = order.pickup + " → " + order.destination;
 
-    const route = document.createElement("p");
-    route.textContent = order.pickup + " → " + order.destination;
+        const status = document.createElement("p");
+        status.textContent = STATUS_LABELS[order.status] || order.status;
 
-    const status = document.createElement("p");
-    status.textContent = STATUS_LABELS[order.status] || order.status;
+        details.append(title, route, status);
 
-    details.append(title, route, status);
+        if (order.review) {
+        const review = document.createElement("p");
+        review.className = "history-review";
+        review.textContent =
+            "★".repeat(order.review.rating) +
+            "☆".repeat(5 - order.review.rating) +
+            (order.review.comment ? " — " + order.review.comment : "");
+        details.append(review);
+        }
 
-    const summary = document.createElement("div");
-    const price = document.createElement("div");
-    price.className = "history-price";
-    price.textContent = money(order.finalPrice ?? order.price);
+        const summary = document.createElement("div");
+        const price = document.createElement("div");
+        price.className = "history-price";
+        price.textContent = money(order.finalPrice ?? order.price);
 
-    const badge = document.createElement("div");
-    badge.className = "history-status";
-    badge.textContent = order.review ? "Отзыв оставлен" : "";
+        summary.append(price);
 
-    summary.append(price, badge);
-    item.append(details, summary);
-    list.append(item);
-  }
+        const canReview =
+        order.status === "completed" && !order.review;
 
-  updateProfileStats();
+        if (canReview) {
+        const reviewButton = document.createElement("button");
+        reviewButton.type = "button";
+        reviewButton.className = "button button-dark button-small";
+        reviewButton.textContent = "Оценить";
+        reviewButton.addEventListener("click", () => openReview(order));
+        summary.append(reviewButton);
+        } else {
+        const badge = document.createElement("div");
+        badge.className = "history-status";
+        badge.textContent = order.review ? "Отзыв оставлен" : "";
+        summary.append(badge);
+        }
+
+        item.append(details, summary);
+        list.append(item);
+    }
 }
 
-function openReview() {
-  if (!activeOrder || activeOrder.status !== "completed") {
-    showToast("Оставить отзыв можно после завершения поездки.");
+function openReview(order) {
+  const target = order || activeOrder;
+
+  if (!target || target.status !== "completed") {
+    showToast("Оставить отзыв можно только для завершённой поездки.");
     return;
   }
 
+  if (target.review) {
+    showToast("Отзыв для этой поездки уже оставлен.");
+    return;
+  }
+
+  reviewOrder = target;
   $("review-form").reset();
   $("review-error").textContent = "";
+  $("review-order-id").value = target.id;
   $("review-modal").classList.remove("hidden");
 }
 
 function closeReview() {
+  reviewOrder = null;
   $("review-modal").classList.add("hidden");
 }
 
@@ -618,12 +666,17 @@ function submitReview(event) {
   event.preventDefault();
   clearMessage("review-error");
 
-  if (!activeOrder || activeOrder.status !== "completed") {
-    showMessage("review-error", "Сначала необходимо завершить поездку.");
+  const orderId = $("review-order-id").value;
+  const target = reviewOrder && reviewOrder.id === orderId
+    ? reviewOrder
+    : null;
+
+  if (!target || target.status !== "completed") {
+    showMessage("review-error", "Не удалось найти завершённую поездку.");
     return;
   }
 
-  if (activeOrder.review) {
+  if (target.review) {
     showMessage("review-error", "Отзыв для этой поездки уже отправлен.");
     return;
   }
@@ -637,20 +690,29 @@ function submitReview(event) {
     return;
   }
 
-  activeOrder.review = {
+  const orders = getOrders();
+  const index = orders.findIndex((item) => item.id === target.id);
+
+  if (index === -1) {
+    showMessage("review-error", "Заказ не найден в истории.");
+    return;
+  }
+
+  orders[index].review = {
     rating,
     comment,
     createdAt: Date.now()
   };
-  activeOrder.updatedAt = Date.now();
+  orders[index].updatedAt = Date.now();
 
-  if (!saveOrder(activeOrder)) {
-    activeOrder.review = null;
-    return;
+  if (!saveOrders(orders)) return;
+
+  if (activeOrder && activeOrder.id === target.id) {
+    activeOrder = orders[index];
+    renderTrip();
   }
 
   closeReview();
-  renderTrip();
   renderHistory();
   showToast("Спасибо! Отзыв сохранён.");
 }
@@ -658,12 +720,16 @@ function submitReview(event) {
 function restoreSession() {
   const session = readStorage(STORAGE_KEYS.session, null);
 
-  if (!session || !session.email) {
+  if (!session || !session.phone) {
     showAuth("login");
     return;
   }
 
-  const user = getUsers().find((item) => item.email === session.email);
+  const normalizedPhone = normalizePhone(session.phone);
+
+  const user = getUsers().find(
+    (item) => normalizePhone(item.phone || "") === normalizedPhone
+  );
 
   if (!user) {
     showAuth("login");
@@ -682,6 +748,8 @@ function bindEvents() {
 
   $("order-form").addEventListener("submit", handleCreateOrder);
   $("distance-km").addEventListener("input", updatePriceDisplay);
+  $("pickup-address").addEventListener("input", updatePriceDisplay);
+  $("destination-address").addEventListener("input", updatePriceDisplay);
 
   document.querySelectorAll('input[name="tariff"]').forEach((input) => {
     input.addEventListener("change", updatePriceDisplay);
@@ -707,7 +775,7 @@ function bindEvents() {
     showOrderView();
   });
 
-  $("leave-review").addEventListener("click", openReview);
+  $("leave-review").addEventListener("click", () => openReview());
   $("review-close").addEventListener("click", closeReview);
   $("review-form").addEventListener("submit", submitReview);
 

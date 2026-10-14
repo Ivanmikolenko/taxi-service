@@ -65,25 +65,51 @@
         </div>
 
         <form id="auth-form" novalidate>
-          <div id="register-fields" class="hidden">
-            <label for="register-name">Имя</label>
-            <input id="register-name" name="name" autocomplete="name"
-                   placeholder="Как к тебе обращаться" maxlength="60">
+            <div id="register-fields" class="hidden">
+                <label for="register-name">Имя</label>
+                <input
+                id="register-name"
+                name="name"
+                autocomplete="name"
+                placeholder="Как к тебе обращаться"
+                maxlength="60"
+                >
+            </div>
 
-            <label for="register-phone">Телефон</label>
-            <input id="register-phone" name="phone" type="tel"
-                   autocomplete="tel" placeholder="+7 900 000-00-00"
-                   inputmode="tel" maxlength="20">
-          </div>
+            <label for="auth-phone">Номер телефона</label>
+            <input
+                id="auth-phone"
+                name="phone"
+                type="tel"
+                required
+                autocomplete="tel"
+                placeholder="+7 900 000-00-00"
+                inputmode="tel"
+                maxlength="20"
+            >
 
-          <label for="auth-email">Электронная почта</label>
-          <input id="auth-email" name="email" type="email" required
-                 autocomplete="email" placeholder="you@example.com" maxlength="254">
+            <label for="auth-password">Пароль</label>
+            <input
+                id="auth-password"
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+                placeholder="Не менее 6 символов"
+                minlength="6"
+            >
 
-          <label for="auth-password">Пароль</label>
-          <input id="auth-password" name="password" type="password" required
-                 autocomplete="current-password" placeholder="Не менее 6 символов" minlength="6">
-
+            <div id="register-password-confirm-field" class="hidden">
+                <label for="register-password-confirm">Повтор пароля</label>
+                <input
+                id="register-password-confirm"
+                name="passwordConfirm"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Повтори пароль"
+                minlength="6"
+                >
+            </div>
           <div id="auth-error" class="form-message" role="alert" aria-live="polite"></div>
 
           <button id="auth-submit" class="button button-dark button-full" type="submit">
@@ -137,8 +163,8 @@
             <div class="field-row">
               <div class="field-group">
                 <label for="distance-km">Расстояние, км</label>
-                <input id="distance-km" name="distance" type="number"
-                       min="1" max="100" step="1" value="8" required>
+                    <input id="distance-km" name="distance" type="number"
+                        min="1" max="100" step="1" placeholder="Например, 8">
               </div>
               <div class="field-group">
                 <label for="payment-method">Способ оплаты</label>
@@ -332,6 +358,7 @@
       <h2 id="review-title">Как всё прошло?</h2>
       <p class="lead">Твой отзыв поможет нам стать лучше.</p>
       <form id="review-form">
+        <input type="hidden" id="review-order-id" value="">
         <fieldset class="rating-field">
           <legend>Оцени поездку</legend>
           <div class="rating-options">
